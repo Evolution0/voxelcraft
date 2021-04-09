@@ -172,7 +172,7 @@ class Lower_Inventory(Entity):
         icon.drop = drop
 
 
-lower_inventory = Lower_Inventory()
+# lower_inventory = Lower_Inventory()     # <----- UN-COMMENT LINE FOR THE INVENTORY TO BE VISIBLE IN THE GAME
 
 
 def add_item():
