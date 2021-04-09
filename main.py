@@ -668,8 +668,8 @@ class Inventory_Crafting_Grid(Entity):
 
 
     def find_free_spot(self):
-        for y in range(1):
-            for x in range(1):
+        for y in range(2):
+            for x in range(2):
                 grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
                 print(grid_positions)
 
@@ -679,7 +679,7 @@ class Inventory_Crafting_Grid(Entity):
 
 
     def append(self, item, x=0, y=0):
-        if len(self.children) >= 1*1:
+        if len(self.children) >= 2*2:
             return
 
         x, y = self.find_free_spot()
@@ -703,8 +703,8 @@ class Inventory_Crafting_Grid(Entity):
             icon.z -= .01   # Ensure the dragged item overlaps the rest
 
         def drop():
-            icon.x = int((icon.x + (icon.scale_x/2)) * 1) / 1
-            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.x = int((icon.x + (icon.scale_x/2)) * 2) / 2
+            icon.y = int((icon.y - (icon.scale_y/2)) * 2) / 2
             icon.z += .01
 
             # If outside, return to original position
@@ -747,8 +747,8 @@ class Inventory_Crafting_Output(Entity):
 
 # UN-COMMENT LINES BELOW UNTIL KEY PRESSING IS SOLVED FOR THE INVENTORIES TO BE VISIBLE IN-GAME
 
-# inventory = Lower_Inventory(), Hotbar(), Boots_Slot(), Leggings_Slot(), Chestplate_Slot(), Helmet_Slot(),
-#Shield_Slot(), Inventory_Crafting_Grid(), Inventory_Crafting_Output()
+inventory = Lower_Inventory(), Hotbar(), Boots_Slot(), Leggings_Slot(), Chestplate_Slot(), Helmet_Slot(),
+Shield_Slot(), Inventory_Crafting_Grid(), Inventory_Crafting_Output()
 
 
 
