@@ -21,24 +21,39 @@ can be improved by redrawing them.
 
 TO-DO:
 
-1. Lower inventory (items) - DOING
-2. Hotbar
-3. Crouch
-4. Improve jumping
-5. Redraw textures
-6. Improve void
-7. Fly
-8. Improve hand animations
-9. Sprint
-10. Maximum block removing reach: 4 blocks
-11. Keep breaking/adding blocks after first one
-12. Terrain generation
-13. Crafting system
-14. Upper inventory (armor, crafting, etc)
+Lower inventory - 3x9 Slot space
+3rd person view
+Crafting system
+Upper inventory - Armor slots, character view, 4x4 crafting system
+Hotbar
+Sprinting
+Sneaking (Crouching)
+Flying
+Improved jumping
+Redraw Textures
+Health Bar
+Hunger Bar
+Improved hand animations
+Optimized performance
+Expanded block collection - Have about 16 in total
+Terrain generation
+Improved void
+Maximum reach - 4 blocks
+Add items - Have about 16 in total
+Chat
+Gamemode creative - no health/hunger bar and unlimited resources
+Switch between gamemodes
 '''
 
 
 from ursina import *
+
+
+# Import separate files
+from sprinting import *
+from lower_inventory import *
+from sky import *
+from hand import *
 
 
 # 1. Create basic instance of the game
@@ -50,8 +65,6 @@ grass_texture = load_texture('assets/grass_block.png')
 stone_texture = load_texture('assets/stone_block.png')
 brick_texture = load_texture('assets/brick_block.png')
 dirt_texture = load_texture('assets/dirt_block.png')
-sky_texture = load_texture('assets/skybox.png')
-arm_texture = load_texture('assets/arm_texture.png')
 punch_sound = Audio('assets/punch_sound', loop = False, autoplay = False)
 grass_block = load_texture('assets/grass_block_3d.png') # Not created yet, will be used for lower inventory
 stone_block = load_texture('assets/stone_block_3d.png') # Not created yet, will be used for lower inventory
@@ -62,6 +75,7 @@ dirt_block = load_texture('assets/dirt_block_3d.png')   # Not created yet, will 
 # 13. Window settings
 window.fps_counter.enabled = False
 window.exit_button.visible = False
+window.title = 'Voxelcraft'
 
 
 # 8. Picking blocks
@@ -87,100 +101,12 @@ camera.fov = 85
 player = FirstPersonController() # Maps the player to the 1st person view
 
 
-player_speed = player.x = 1
-
-
-# 14. Sprinting
-class Sprint(Entity):
-    global player_speed
-    if held_keys['ctrl', 'w'] or held_keys['w', 'ctrl']:
-        player_speed = player_speed * 2
-
-
-# 15. Inventory
-class Lower_Inventory(Entity):
-    def __init__(self, **kwargs):
-        super().__init__(
-            parent = camera.ui,
-            model = Quad(radius=0),
-            texture = 'white_cube',
-            texture_scale = (9,3),
-            scale = (.9, .3),
-            origin = (-.5, .8),
-            position = (-0.45,0.15),
-            color = color.rgb(210, 210, 210)
-            )
-
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-
-    def find_free_spot(self):
-        for y in range(8):
-            for x in range(5):
-                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
-                print(grid_positions)
-
-                if not (x,-y) in grid_positions:
-                    print('found free spot:', x, y)
-                    return x, y
-
-
-    def append(self, item, x=0, y=0):
-        if len(self.children) >= 5*8:
-            return
-
-        x, y = self.find_free_spot()
-
-        icon = Draggable(
-            parent = self,
-            model = 'quad',
-            texture = item,
-            color = color.white,
-            scale_x = 1/self.texture_scale[0],
-            scale_y = 1/self.texture_scale[1],
-            origin = (-.5,.5),
-            x = x * 1/self.texture_scale[0],
-            y = -y * 1/self.texture_scale[1],
-            z = -.5,
-            )
-
-
-        def drag():
-            icon.org_pos = (icon.x, icon.y)
-            icon.z -= .01   # Ensure the dragged item overlaps the rest
-
-        def drop():
-            icon.x = int((icon.x + (icon.scale_x/2)) * 5) / 5
-            icon.y = int((icon.y - (icon.scale_y/2)) * 8) / 8
-            icon.z += .01
-
-            # If outside, return to original position
-            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
-                icon.position = (icon.org_pos)
-                return
-
-            # If the spot is taken, swap positions
-            for c in self.children:
-                if c == icon:
-                    continue
-                if c.x == icon.x and c.y == icon.y:
-                    print('swap positions')
-                    c.position = icon.org_pos
-
-        icon.drag = drag
-        icon.drop = drop
-
-
-# lower_inventory = Lower_Inventory()     # <----- UN-COMMENT LINE FOR THE INVENTORY TO BE VISIBLE IN THE GAME
-
-
 def add_item():
     global grass_block, stone_block, brick_block, dirt_block
     inventory.append(grass_block, stone_block, brick_block, dirt_block)
 
 
-# 2. Create voxel (minecraft block) as a button
+# 2. Create voxels
 class Voxel(Button):
     def __init__(self, position = (0,0,0), texture = grass_texture):
         # Ends up with default position if no information is being passed
@@ -217,39 +143,6 @@ class Voxel(Button):
             if held_keys['e down']:
                     lower_inventory.visible = True
                     mouse.visible = True
-
-
-# 9. Create sky
-class Sky(Entity):
-    def __init__(self):
-        super().__init__(
-            parent = scene,          # Specifies parent of sky so it scales properly
-            model = 'sphere',        # Specifies sky model
-            texture = sky_texture,   # Sky texture
-            scale = 1000,            # Increases size drastically
-            double_sided = True      # See the sphere when you are in it
-        )
-
-
-# 10. Create player hand
-class Hand(Entity):
-    def __init__(self):
-        super().__init__(
-            parent = camera.ui,        # Specifies parent of hand which is the player
-            model = 'assets/arm',      # Specifies hand model
-            texture = arm_texture,     # Hand texture
-            scale = 0.2,               # Decrease size so it looks normal
-            rotation = Vec3(160,-5,0), # Rotate the hand to a specific angle so it doesnt face in the center of the screen
-            position = Vec2(0.5,-0.6)  # Position the hand so it's connected to the "body"
-        )
-
-    # 11. Hand "animations"
-    def active(self):
-        self.rotation = Vec3(160,-5,0)
-        self.position = Vec2(0.4,-0.5)
-    
-    def passive(self):
-        self.position = Vec2(0.5,-0.6)
 
 
 # 4. Create default platform
