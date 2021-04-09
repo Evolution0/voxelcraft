@@ -72,6 +72,7 @@ boots_slot_texture = load_texture('assets/boots_slot.png')
 leggings_slot_texture = load_texture('assets/leggings_slot.png')
 chestplate_slot_texture = load_texture('assets/chestplate_slot.png')
 helmet_slot_texture = load_texture('assets/helmet_slot.png')
+shield_slot_texture = load_texture('assets/shield_slot.png')
 
 punch_sound = Audio('assets/punch_sound', loop = False, autoplay = False)
 
@@ -570,13 +571,93 @@ class Helmet_Slot(Entity):
             #inventory.append(iron_helmet)
 
 
-# COMMENT LINES BELOW FOR THE INVENTORIES TO BE INVISIBLE IN-GAME UNTIL KEY PRESSING IS SOLVED
-lower_inventory = Lower_Inventory()
-hotbar = Hotbar()
-boots_slot = Boots_Slot()
-leggings_slot = Leggings_Slot()
-chestplate_slot = Chestplate_Slot()
-helmet_slot = Helmet_Slot()
+# 17. e. Shield slot
+class Shield_Slot(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = shield_slot_texture,
+            texture_scale = (1,1),
+            scale = (0.08, 0.08),
+            origin = (1.12, -2.27),
+            position = (0.09,-0.18),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+    def find_free_spot(self):
+        for y in range(1):
+            for x in range(1):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 1*1:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 1) / 1
+            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drops
+
+        #def add_item(): # Can only add helmets
+            #global iron_helmet
+            #inventory.append(iron_helmet)
+
+
+# UN-COMMENT LINES BELOW UNTIL KEY PRESSING IS SOLVED FOR THE INVENTORIES TO BE VISIBLE IN-GAME
+
+#lower_inventory = Lower_Inventory()
+#hotbar = Hotbar()
+#boots_slot = Boots_Slot()
+#leggings_slot = Leggings_Slot()
+#chestplate_slot = Chestplate_Slot()
+#helmet_slot = Helmet_Slot()
+#shield_slot = Shield_Slot()
 
 
 
@@ -598,7 +679,6 @@ class Voxel(Button):
     # 6. Create and destroy blocks
     def input(self,key):
         if self.hovered:
-            global lower_inventory
             if key == 'right mouse down': # If right mouse button is pressed, create new block
                 punch_sound.play()
                 # Be able to place different blocks depending on the number pressed
@@ -613,10 +693,6 @@ class Voxel(Button):
             if key == 'space down': # If space is pressed, jump one block
                 player.y += 1
                 invoke(setattr, player, 'y', player.y-1)
-            # Open inventory
-            if held_keys['e down']:
-                    lower_inventory.visible = True
-                    mouse.visible = True
 
 
 
