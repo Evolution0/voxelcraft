@@ -51,7 +51,7 @@ from ursina import *
 
 # Import separate files
 from sprinting import *
-from lower_inventory import *
+#from inventory import *
 from sky import *
 from hand import *
 
@@ -60,22 +60,33 @@ from hand import *
 app = Ursina()
 
 
+
 # 7. Assets
 grass_texture = load_texture('assets/grass_block.png')
 stone_texture = load_texture('assets/stone_block.png')
 brick_texture = load_texture('assets/brick_block.png')
 dirt_texture = load_texture('assets/dirt_block.png')
+
+inventory_slot_texture = load_texture('assets/inventory_slot.png')
+boots_slot_texture = load_texture('assets/boots_slot.png')
+leggings_slot_texture = load_texture('assets/leggings_slot.png')
+chestplate_slot_texture = load_texture('assets/chestplate_slot.png')
+helmet_slot_texture = load_texture('assets/helmet_slot.png')
+
 punch_sound = Audio('assets/punch_sound', loop = False, autoplay = False)
+
 grass_block = load_texture('assets/grass_block_3d.png') # Not created yet, will be used for lower inventory
 stone_block = load_texture('assets/stone_block_3d.png') # Not created yet, will be used for lower inventory
 brick_block = load_texture('assets/brick_block_3d.png') # Not created yet, will be used for lower inventory
 dirt_block = load_texture('assets/dirt_block_3d.png')   # Not created yet, will be used for lower inventory
 
 
+
 # 13. Window settings
 window.fps_counter.enabled = False
 window.exit_button.visible = False
 window.title = 'Voxelcraft'
+
 
 
 # 8. Picking blocks
@@ -95,15 +106,478 @@ def update():
     if held_keys['4']: block_pick = 4 # Dirt block
 
 
+
 # 5. 1st person view
 from ursina.prefabs.first_person_controller import FirstPersonController
 camera.fov = 85
 player = FirstPersonController() # Maps the player to the 1st person view
 
 
-def add_item():
-    global grass_block, stone_block, brick_block, dirt_block
-    inventory.append(grass_block, stone_block, brick_block, dirt_block)
+
+# 15. Lower Inventory
+class Lower_Inventory(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = inventory_slot_texture,
+            texture_scale = (9,3),
+            scale = (0.72, 0.24),
+            origin = (-0.32, 0.62),
+            position = (-0.23,-0.03),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+    def find_free_spot(self):
+        for y in range(3):
+            for x in range(9):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 9*3:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 9) / 9
+            icon.y = int((icon.y - (icon.scale_y/2)) * 3) / 3
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drop
+
+
+
+# 16. Hotbar
+class Hotbar(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = inventory_slot_texture,
+            texture_scale = (9,1),
+            scale = (0.72, 0.08),
+            origin = (-0.32, 0.62),
+            position = (-0.23,-0.315),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+    def find_free_spot(self):
+        for y in range(1):
+            for x in range(9):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 9*1:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 9) / 9
+            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drop
+
+
+
+# 17. a. Armor slot: Boots
+class Boots_Slot(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = boots_slot_texture,
+            texture_scale = (1,1),
+            scale = (0.08, 0.08),
+            origin = (1.12, -2.27),
+            position = (-0.23,-0.18),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def find_free_spot(self):
+        for y in range(1):
+            for x in range(1):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 1*1:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 1) / 1
+            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drops
+
+        #def add_item(): # Can only add boots
+            #global iron_boots
+            #inventory.append(iron_boots)
+
+
+
+# 17. b. Armor slot: Leggings
+class Leggings_Slot(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = leggings_slot_texture,
+            texture_scale = (1,1),
+            scale = (0.08, 0.08),
+            origin = (1.12, -2.27),
+            position = (-0.23,-0.1),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def find_free_spot(self):
+        for y in range(1):
+            for x in range(1):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 1*1:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 1) / 1
+            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drops
+
+        #def add_item(): # Can only add leggings
+            #global iron_leggings
+            #inventory.append(iron_leggings)
+
+
+
+# 17. c. Armor slot: Chestplate
+class Chestplate_Slot(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = chestplate_slot_texture,
+            texture_scale = (1,1),
+            scale = (0.08, 0.08),
+            origin = (1.12, -2.27),
+            position = (-0.23,-0.02),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def find_free_spot(self):
+        for y in range(1):
+            for x in range(1):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 1*1:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 1) / 1
+            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drops
+
+        #def add_item(): # Can only add chestplates
+            #global iron_chestplate
+            #inventory.append(iron_chestplate)
+
+
+
+# 17. d. Armor slot: Helmet
+class Helmet_Slot(Entity):
+    def __init__(self, **kwargs):
+        super().__init__(
+            parent = camera.ui,
+            model = Quad(radius=0),
+            texture = helmet_slot_texture,
+            texture_scale = (1,1),
+            scale = (0.08, 0.08),
+            origin = (1.12, -2.27),
+            position = (-0.23, 0.06),
+            color = color.rgb(255, 255, 255)
+            )
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+    def find_free_spot(self):
+        for y in range(1):
+            for x in range(1):
+                grid_positions = [(int(e.x*self.texture_scale[0]), int(e.y*self.texture_scale[1])) for e in self.children]
+                print(grid_positions)
+
+                if not (x,-y) in grid_positions:
+                    print('found free spot:', x, y)
+                    return x, y
+
+
+    def append(self, item, x=0, y=0):
+        if len(self.children) >= 1*1:
+            return
+
+        x, y = self.find_free_spot()
+
+        icon = Draggable(
+            parent = self,
+            model = 'quad',
+            texture = item,
+            color = color.white,
+            scale_x = 1/self.texture_scale[0],
+            scale_y = 1/self.texture_scale[1],
+            origin = (-.5,.5),
+            x = x * 1/self.texture_scale[0],
+            y = -y * 1/self.texture_scale[1],
+            z = -.5,
+            )
+
+
+        def drag():
+            icon.org_pos = (icon.x, icon.y)
+            icon.z -= .01   # Ensure the dragged item overlaps the rest
+
+        def drop():
+            icon.x = int((icon.x + (icon.scale_x/2)) * 1) / 1
+            icon.y = int((icon.y - (icon.scale_y/2)) * 1) / 1
+            icon.z += .01
+
+            # If outside, return to original position
+            if icon.x < 0 or icon.x >= 1 or icon.y > 0 or icon.y <= -1:
+                icon.position = (icon.org_pos)
+                return
+
+            # If the spot is taken, swap positions
+            for c in self.children:
+                if c == icon:
+                    continue
+                if c.x == icon.x and c.y == icon.y:
+                    c.position = icon.org_pos
+
+        icon.drag = drag
+        icon.drop = drops
+
+        #def add_item(): # Can only add helmets
+            #global iron_helmet
+            #inventory.append(iron_helmet)
+
+
+# COMMENT LINES BELOW FOR THE INVENTORIES TO BE INVISIBLE IN-GAME UNTIL KEY PRESSING IS SOLVED
+lower_inventory = Lower_Inventory()
+hotbar = Hotbar()
+boots_slot = Boots_Slot()
+leggings_slot = Leggings_Slot()
+chestplate_slot = Chestplate_Slot()
+helmet_slot = Helmet_Slot()
+
 
 
 # 2. Create voxels
@@ -143,6 +617,7 @@ class Voxel(Button):
             if held_keys['e down']:
                     lower_inventory.visible = True
                     mouse.visible = True
+
 
 
 # 4. Create default platform
