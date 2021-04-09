@@ -1,6 +1,8 @@
 # Getting Started
 Voxelcraft is an open-source project written in [the ursina engine](https://github.com/pokepetter/ursina), simulating the popular game Minecraft.
 
+Check project wikis for more in-depth information.
+
 
 # Installation
 To run the program use the following command:
