@@ -7,6 +7,12 @@ Contributor/s:
 
 
 '''
+GO TO LINE 652 AND UNCOMMENT THE LINES BELOW IF YOU WISH TO SEE THE INVENTORY (CANT ESCAPE FROM IT UNTIL KEY PRESSES ARE SOLVED)
+AND COMMENT THEM AGAIN IF WANT THE INVENTORY TO BE INVISIBLE
+'''
+
+
+'''
 GOAL:
 
 Add as many features to match the original game as possible until January 1st, 2022
