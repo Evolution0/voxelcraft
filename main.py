@@ -747,8 +747,8 @@ class Inventory_Crafting_Output(Entity):
 
 # UN-COMMENT LINES BELOW UNTIL KEY PRESSING IS SOLVED FOR THE INVENTORIES TO BE VISIBLE IN-GAME
 
-inventory = Lower_Inventory(), Hotbar(), Boots_Slot(), Leggings_Slot(), Chestplate_Slot(), Helmet_Slot(),
-Shield_Slot(), Inventory_Crafting_Grid(), Inventory_Crafting_Output()
+#inventory = Lower_Inventory(), Hotbar(), Boots_Slot(), Leggings_Slot(), Chestplate_Slot(), Helmet_Slot(),
+#Shield_Slot(), Inventory_Crafting_Grid(), Inventory_Crafting_Output()
 
 
 
