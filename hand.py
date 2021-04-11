@@ -20,6 +20,3 @@ class Hand(Entity):
     
     def passive(self):
         self.position = Vec2(0.5,-0.6)
-
-
-hand = Hand() # Maps the hand
